@@ -56,8 +56,9 @@ import java.util.Locale;
 
 public class Web extends Service {
     static final int PORT = 18080;
-    static final String HOST = "192.0.2.10";
-    static final int BASE = 18805;
+    /** Запасной адрес. Рабочий берётся из files/server.txt: строка 1 — IP, строка 2 — BASE. */
+    static String HOST = "192.0.2.10";
+    static int BASE = 18805;
     /** 16ch WAV с root-демона (yse-ear); как clean.ring у housed. */
     static final String[] EAR_LOOP = {
             "/storage/emulated/0/Download/yse_ear_loop.wav",
@@ -139,6 +140,7 @@ public class Web extends Service {
                 .build();
         startForeground(1, note);
         self = this;
+        applyServer();
         loadPage();
         alarmsMgr = new Alarms(this);
         bleGw = new BleGateway(this);
@@ -265,6 +267,32 @@ public class Web extends Service {
 
     File settingsFile() {
         return new File(getFilesDir(), "settings.json");
+    }
+
+    /** Сервис yse-home пишет этот файл перед стартом. Пустой файл оставляет запасной адрес. */
+    void applyServer() {
+        try {
+            File file = new File(getFilesDir(), "server.txt");
+            if (!file.exists()) {
+                return;
+            }
+            byte[] buf = new byte[(int) file.length()];
+            FileInputStream in = new FileInputStream(file);
+            int got = in.read(buf);
+            in.close();
+            if (got <= 0) {
+                return;
+            }
+            String[] lines = new String(buf, 0, got, UTF8).split("\n");
+            String host = lines[0].trim();
+            if (host.length() > 0) {
+                HOST = host;
+            }
+            if (lines.length > 1 && lines[1].trim().length() > 0) {
+                BASE = Integer.parseInt(lines[1].trim());
+            }
+        } catch (Throwable ignored) {
+        }
     }
 
     synchronized JSONObject settings() {
