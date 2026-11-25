@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Столовая</title>
+<style>
+  :root { color-scheme: light; }
+  html, body { height: 100%; overflow: hidden; }
+  body { margin: 0; font: 14px/1.35 "Segoe UI", sans-serif; background: #e7f2fb; color: #16324a; }
+  main { box-sizing: border-box; height: 100%; max-width: 1180px; margin: 0 auto; padding: 10px 12px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+  header { display: flex; gap: 8px; align-items: center; }
+  h1 { font-size: 20px; margin: 0; color: #145ea8; }
+  #clock { margin: 0 0 0 auto; font-size: 15px; white-space: nowrap; color: #145ea8; }
+  .board { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 1fr); gap: 8px; }
+  section { min-height: 0; overflow: auto; background: #fff; border: 1px solid #b9d7f0; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+  h2 { font-size: 15px; margin: 0; color: #145ea8; }
+  label { color: #3d6284; }
+  input, select, textarea { box-sizing: border-box; width: 100%; margin: 0; padding: 6px 8px; border-radius: 7px; border: 1px solid #b7d0e8; background: #fff; color: #16324a; font: inherit; }
+  input[type="checkbox"] { width: 16px; height: 16px; padding: 0; accent-color: #f08a24; }
+  input[type="color"] { width: 42px; height: 28px; padding: 2px; flex: 0 0 auto; }
+  input[type="range"] { padding: 0; accent-color: #1d6fbf; }
+  textarea { min-height: 4.2em; resize: vertical; }
+  button { width: auto; white-space: nowrap; border: 0; border-radius: 7px; padding: 6px 10px; background: #1d6fbf; color: #fff; font: inherit; font-weight: 650; cursor: pointer; }
+  button.ghost { background: #fff; color: #145ea8; border: 1px solid #8eb7e0; }
+  button.danger { background: #fff; color: #c2410c; border: 1px solid #f0b48a; }
+  .wide { width: 100%; }
+  .row { display: flex; gap: 6px; align-items: center; }
+  .grow { flex: 1; min-width: 0; }
+  .mark { min-width: 3.2em; text-align: right; color: #145ea8; }
+  .meta { margin: 0; color: #5d7c99; }
+  .err { margin: 0; min-height: 1.2em; color: #c2410c; }
+  .alarm-set input { width: 0; flex: 1 1 auto; min-width: 0; }
+  .alarm-set button { flex: 0 0 auto; }
+  #people, #playlists, #voices, #people-new, #nets, #alarms, #alarm-tracks, #nn-llm, #news-llm { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+  #nn-llm[hidden], #news-llm[hidden], #alarm-days[hidden], #alarm-stop[hidden], #alarm-cancel[hidden], #alarm-clear[hidden] { display: none; }
+  .days { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .days label { display: inline-flex; gap: 3px; align-items: center; font-size: 13px; }
+  #alarm-tracks { max-height: 9em; overflow: auto; }
+  #alarm-tracks:empty { display: none; }
+  #alarm-tracks button { width: 100%; text-align: left; background: #f4f9fd; color: #16324a; border: 1px solid transparent; font-weight: 500; flex-shrink: 0; }
+  #alarm-tracks button:hover { border-color: #1d6fbf; }
+  #nets { max-height: 9em; overflow: auto; }
+  #nets button { width: 100%; text-align: left; background: #f4f9fd; color: #16324a; border: 1px solid transparent; font-weight: 500; }
+  #nets button.on { border-color: #1d6fbf; }
+  #people { max-height: 5.5em; overflow: auto; }
+  #alarms { max-height: 12em; overflow: auto; }
+  #alarms:empty { display: none; }
+  .alarm-item { display: flex; gap: 6px; align-items: center; background: #f4f9fd; border-radius: 7px; padding: 5px 7px; }
+  .alarm-item.off { opacity: 0.55; }
+  .alarm-info { flex: 1; min-width: 0; }
+  .alarm-time { font-weight: 650; color: #145ea8; }
+  .alarm-sub { font-size: 12px; color: #5d7c99; }
+  #playlists { max-height: 14em; overflow: auto; }
+  #people button, #playlists button { width: 100%; text-align: left; background: #f4f9fd; color: #16324a; border: 1px solid transparent; font-weight: 500; flex-shrink: 0; }
+  #people button.on, #playlists button.on { border-color: #1d6fbf; }
+  #music-now { min-height: 1.3em; margin: 0; color: #145ea8; flex-shrink: 0; }
+  #lyrics { margin: 0; min-height: 3.2em; max-height: 6.4em; overflow: auto; white-space: pre-wrap; color: #16324a; font: 13px/1.35 "Segoe UI", sans-serif; }
+  .player { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; flex-shrink: 0; }
+  .player button { width: 38px; height: 34px; padding: 0; display: grid; place-items: center; flex: 0 0 auto; background: #fff; color: #145ea8; border: 1px solid #8eb7e0; }
+  .player svg { width: 18px; height: 18px; fill: currentColor; }
+  .player button.on { outline: 2px solid #f08a24; }
+  .frame { border: 1px solid #7eb0de; border-radius: 8px; background: #f7fbff; padding: 6px 8px; flex-shrink: 0; }
+  #heard { margin: 0; min-height: 2.6em; }
+  @media (max-width: 800px) {
+    html, body { height: auto; overflow: auto; }
+    main { height: auto; }
+    .board { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Столовая</h1>
+    <p id="clock">—</p>
+  </header>
+  <div class="board">
+    <section>
+      <div class="row">
+        <h2 class="grow">Сети рядом</h2>
+        <button id="rescan" class="ghost" type="button">Обновить</button>
+      </div>
+      <div id="nets"></div>
+      <div class="row">
+        <input id="wpsk" class="grow" type="password" maxlength="63" autocomplete="new-password" placeholder="пароль выбранной сети" aria-label="Пароль сети">
+        <button id="wifi" class="danger" type="button">Подключить</button>
+      </div>
+      <div class="row">
+        <label class="grow" for="volume">Громкость</label>
+        <span id="vol-n" class="mark">—</span>
+      </div>
+      <input id="volume" type="range" min="0" max="100" value="10">
+      <div class="row">
+        <label class="grow" for="screen-bright">Яркость часов</label>
+        <span id="screen-n" class="mark">220</span>
+      </div>
+      <input id="screen-bright" type="range" min="1" max="255" value="220">
+      <div class="row">
+        <label class="grow"><input id="ring" type="checkbox" checked> Кольцо</label>
+        <input id="ring-color" type="color" value="#3aa0ff" aria-label="Цвет кольца">
+      </div>
+      <div class="row">
+        <label class="grow" for="ring-bright">Яркость</label>
+        <span id="bright-n" class="mark">160</span>
+      </div>
+      <input id="ring-bright" type="range" min="0" max="255" value="160">
+      <select id="ring-effect" aria-label="Эффект кольца">
+        <option value="wave">Волна</option>
+        <option value="breathe">Дыхание</option>
+        <option value="spin">Вращение</option>
+        <option value="fill">Заливка</option>
+        <option value="spark">Искры</option>
+        <option value="shift">Перелив</option>
+        <option value="comet">Комета</option>
+        <option value="aurora">Сияние</option>
+        <option value="twinkle">Мерцание</option>
+      </select>
+      <label class="row"><input id="lamp" type="checkbox"> Светильник</label>
+      <div class="row">
+        <input id="lamp-color" type="color" value="#ffd8a8" aria-label="Цвет светильника">
+        <label class="grow" for="lamp-bright">Яркость света</label>
+        <span id="lamp-n" class="mark">180</span>
+      </div>
+      <input id="lamp-bright" type="range" min="1" max="255" value="180">
+      <label class="row"><input id="bt" type="checkbox"> Гарнитура (Bluetooth-колонка)</label>
+      <p id="bt-note" class="meta">Видна телефону и компьютеру как Bluetooth-колонка (A2DP Sink). Пульт ТВ работает всегда.</p>
+      <div class="frame">
+        <div class="row">
+          <label class="grow"><input id="ble-gw" type="checkbox" checked> BLE-шлюз в Home Assistant</label>
+          <span id="ble-count" class="mark">0</span>
+        </div>
+        <p id="ble-state" class="meta">Пассивный BLE-сканер (BTHome, Xiaomi, ATC, iBeacon, присутствие по RSSI).</p>
+        <div class="row">
+          <input id="mqtt-host" type="text" maxlength="100" placeholder="MQTT хост (192.168.209.15)" aria-label="MQTT хост">
+          <input id="mqtt-port" type="number" min="1" max="65535" placeholder="1883" style="width:80px;flex:0 0 auto" aria-label="MQTT порт">
+        </div>
+        <div class="row">
+          <input id="mqtt-user" type="text" maxlength="64" placeholder="MQTT логин" aria-label="MQTT логин">
+          <input id="mqtt-pass" type="password" maxlength="128" autocomplete="off" placeholder="MQTT пароль" aria-label="MQTT пароль">
+        </div>
+        <div id="ble-list" class="meta" style="max-height:7.5em;overflow:auto;font-size:12px"></div>
+      </div>
+      <h2>Команда</h2>
+      <textarea id="cmd-text" maxlength="300" placeholder="Команда, как голосом: включи свет"></textarea>
+      <button id="cmd-send" class="wide" type="button">Отправить команду</button>
+      <h2>Озвучить</h2>
+      <textarea id="say-text" maxlength="300" placeholder="Текст, который колонка произнесёт выбранным голосом"></textarea>
+      <button id="say-send" class="ghost wide" type="button">Озвучить</button>
+      <div class="row">
+        <h2 class="grow">Будильники</h2>
+        <button id="alarm-stop" class="danger" type="button" hidden>Выключить звонок</button>
+        <button id="alarm-clear" class="danger" type="button" hidden>Удалить все</button>
+      </div>
+      <div id="alarms"></div>
+      <div class="row alarm-set">
+        <input id="alarm-time" type="time" value="07:00" aria-label="Время будильника">
+        <select id="alarm-repeat" aria-label="Повтор будильника" style="flex:1.2;min-width:0">
+          <option value="once">Один раз</option>
+          <option value="weekdays">По будням</option>
+          <option value="weekends">По выходным</option>
+          <option value="daily">Каждый день</option>
+          <option value="custom">Выбрать дни</option>
+        </select>
+      </div>
+      <div id="alarm-days" class="days" hidden>
+        <label><input type="checkbox" value="0"> Пн</label>
+        <label><input type="checkbox" value="1"> Вт</label>
+        <label><input type="checkbox" value="2"> Ср</label>
+        <label><input type="checkbox" value="3"> Чт</label>
+        <label><input type="checkbox" value="4"> Пт</label>
+        <label><input type="checkbox" value="5"> Сб</label>
+        <label><input type="checkbox" value="6"> Вс</label>
+      </div>
+      <div class="row alarm-set">
+        <input id="alarm-label" type="text" maxlength="60" placeholder="подпись, например На работу" aria-label="Подпись будильника">
+        <button id="alarm-clock" type="button">Поставить</button>
+        <button id="alarm-cancel" class="ghost" type="button" hidden>Отмена</button>
+      </div>
+      <div class="row alarm-set">
+        <input id="alarm-mins" type="number" min="1" max="1440" inputmode="numeric" placeholder="через сколько минут" aria-label="Через сколько минут">
+        <button id="alarm-in" class="ghost" type="button">Через</button>
+      </div>
+      <div class="frame">
+        <h2>Мелодия будильника</h2>
+        <p id="alarm-tone-now" class="meta">Встроенный сигнал</p>
+        <div class="row">
+          <label class="grow" for="alarm-vol">Громкость будильника</label>
+          <span id="alarm-vol-n" class="mark">50%</span>
+        </div>
+        <input id="alarm-vol" type="range" min="5" max="100" value="50">
+        <div class="row">
+          <input id="alarm-file" type="file" accept="audio/*" aria-label="Своя мелодия" style="flex:1;min-width:0;padding:3px">
+          <button id="alarm-builtin" class="ghost" type="button">Встроенный</button>
+        </div>
+        <div class="row alarm-set">
+          <input id="alarm-q" type="text" maxlength="80" placeholder="трек в Яндекс Музыке" aria-label="Поиск мелодии в Яндекс Музыке">
+          <button id="alarm-find" class="ghost" type="button">Найти</button>
+        </div>
+        <div id="alarm-tracks"></div>
+      </div>
+      <p id="msg" class="err"></p>
+    </section>
+    <section>
+      <h2>Нейросеть</h2>
+      <select id="nn-kind" aria-label="Нейросеть">
+        <option value="">Не выбрана</option>
+        <option value="yandex">Яндекс</option>
+        <option value="ha">Home Assistant</option>
+        <option value="assist">Assist (звук в HA)</option>
+        <option value="openai">OpenAI-совместимая</option>
+        <option value="google">Google, режим ИИ</option>
+        <option value="custom">Свой адрес</option>
+      </select>
+      <div id="nn-llm" hidden>
+        <input id="llm-url" type="url" maxlength="200" placeholder="http://192.168.209.50:8090/v1" aria-label="Адрес нейросети">
+        <input id="llm-model" type="text" maxlength="80" placeholder="модель, например huihui-qwen3.5-4b" aria-label="Модель нейросети">
+        <input id="llm-key" type="password" maxlength="200" autocomplete="off" placeholder="ключ API (если нужен)" aria-label="Ключ нейросети">
+      </div>
+      <h2>Новости</h2>
+      <select id="news-kind" aria-label="Новости">
+        <option value="yandex">Яндекс</option>
+        <option value="google">Google, режим ИИ</option>
+        <option value="openai">Своя сеть</option>
+      </select>
+      <div id="news-llm">
+        <input id="news-url" type="url" maxlength="200" placeholder="https://api.x.ai/v1" aria-label="Адрес сети для новостей">
+        <input id="news-model" type="text" maxlength="80" placeholder="модель, например grok-4" aria-label="Модель для новостей">
+        <input id="news-key" type="password" maxlength="200" autocomplete="off" placeholder="ключ API" aria-label="Ключ сети для новостей">
+      </div>
+      <h2>Распознавание</h2>
+      <select id="stt" aria-label="Распознавание">
+        <option value="gigaam">GigaAM (сервер, видеокарта)</option>
+        <option value="vosk-small">Vosk малый (сервер)</option>
+        <option value="vosk">Vosk большой (сервер)</option>
+        <option value="whisper">Whisper (сервер)</option>
+        <option value="yandex">Яндекс</option>
+        <option value="ha">Home Assistant</option>
+      </select>
+      <p class="meta">При «Джарвис локально», «Алиса» и «Яндекс» слово ищет сама колонка, а фразу, голос и нейросеть — как выбрано выше.</p>
+      <h2>Голос</h2>
+      <select id="voice" aria-label="Голос">
+        <option value="own:jarvis_new">Джарвис новый (свой сервер)</option>
+        <option value="own:jarvis">Джарвис (свой сервер)</option>
+        <option value="own:vihrov">Вихров (свой сервер)</option>
+        <option value="own:baya">Silero Бая (свой сервер)</option>
+        <option value="own:eugene">Silero Евгений (свой сервер)</option>
+        <option value="alisa">Алиса</option>
+        <option value="dmitry">Дмитрий</option>
+        <option value="svetlana">Светлана</option>
+        <option value="custom">Свой</option>
+      </select>
+      <h2>Слово</h2>
+      <select id="wake" aria-label="Слово пробуждения">
+        <option value="джарвис-локально">Джарвис локально (на колонке)</option>
+        <option value="джарвис">Джарвис (своя модель на сервере)</option>
+        <option value="алиса">Алиса (штатная, на колонке)</option>
+        <option value="яндекс">Яндекс (штатная, на колонке)</option>
+      </select>
+      <label class="row"><input id="wake-sound" type="checkbox" checked> Звук на слово</label>
+      <div class="frame">
+        <h2>Слышит</h2>
+        <p id="heard">После слова здесь будет фраза</p>
+      </div>
+      <h2>Характер</h2>
+      <textarea id="persona" maxlength="3000" rows="10" placeholder="Как говорить: коротко, спокойно, по делу. Можно задать подробный промпт (до 3000 символов)."></textarea>
+      <h2>Голоса</h2>
+      <p id="voices-state" class="meta">Скажите «Джарвис, запомни мой голос» или нажмите «Познакомиться».</p>
+      <div id="voices"></div>
+      <button id="voice-enroll" class="ghost" type="button">Познакомиться</button>
+      <h2>Яндекс Музыка</h2>
+      <p id="music-state" class="meta">Сначала человек входит один раз со своего телефона.</p>
+      <div id="people"></div>
+      <div id="people-new"></div>
+      <div id="playlists"></div>
+      <div class="row">
+        <input id="person-name" type="text" maxlength="40" placeholder="имя, например Маша" aria-label="Имя">
+        <button id="person-add" class="ghost" type="button">Войти</button>
+      </div>
+      <p id="music-code" class="meta"></p>
+      <p id="music-now"></p>
+      <div class="player" aria-label="Плеер">
+        <button id="music-prev" type="button" aria-label="Назад"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zm3.5 7 9 6.5v-13z"/></svg></button>
+        <button id="music-play" type="button" aria-label="Играть"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        <button id="music-pause" type="button" aria-label="Пауза"><svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg></button>
+        <button id="music-stop" type="button" aria-label="Стоп"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg></button>
+        <button id="music-next" type="button" aria-label="Дальше"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM5.5 5.5l9 6.5-9 6.5z"/></svg></button>
+        <button id="music-like" type="button" aria-label="Лайк"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 4.6-7 9-7 9z"/></svg></button>
+        <button id="music-dislike" type="button" aria-label="Дизлайк"><svg viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/></svg></button>
+      </div>
+      <div class="frame">
+        <h2>Текст песни</h2>
+        <pre id="lyrics"></pre>
+      </div>
+      <h2>Телевизор</h2>
+      <div class="row">
+        <button id="open-browser" class="ghost" type="button">Браузер</button>
+        <button id="open-vlc" class="ghost" type="button">VLC</button>
+      </div>
+      <p id="tv-state" class="meta">Картинка колонки выходит в HDMI. Приложения откроются на телевизоре, когда кабель подключён.</p>
+      <p id="board" class="meta"></p>
+      <button id="save" class="wide" type="button">Сохранить</button>
+    </section>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  const text = await res.text();
+  let data = {};
+  try { data = text ? JSON.parse(text) : {}; } catch (e) { data = {error: text}; }
+  if (!res.ok) throw new Error(data.error || res.status);
+  return data;
+}
+function say(t) { $("msg").textContent = t || ""; }
+function showNews() {
+  $("news-llm").hidden = $("news-kind").value !== "openai";
+}
+function showLlm() {
+  const v = $("nn-kind").value;
+  $("nn-llm").hidden = (v !== "openai" && v !== "custom");
+}
+function fill(s) {
+  $("nn-kind").value = s.nn || "ha";
+  $("llm-url").value = s.llm_url || "";
+  $("llm-model").value = s.llm_model || "";
+  $("llm-key").value = "";
+  showLlm();
+  $("news-kind").value = s.news || "yandex";
+  $("news-url").value = s.news_url || "";
+  $("news-model").value = s.news_model || "";
+  $("news-key").value = s.news_key || "";
+  showNews();
+  $("stt").value = s.stt || "gigaam";
+  $("voice").value = s.voice || "own:jarvis_new";
+  $("wake").value = s.wake || "джарвис-локально";
+  $("persona").value = s.persona || "";
+  $("wake-sound").checked = s.wake_sound !== "0";
+  $("bt").checked = s.bt === "1";
+  $("ble-gw").checked = s.ble_gw !== "0";
+  $("mqtt-host").value = s.mqtt_host || "192.168.209.15";
+  $("mqtt-port").value = s.mqtt_port || "1883";
+  $("mqtt-user").value = s.mqtt_user || "";
+  $("mqtt-pass").value = "";
+  $("ring").checked = s.ring !== "0";
+  if (s.ring_color) $("ring-color").value = s.ring_color.startsWith("#") ? s.ring_color : "#" + s.ring_color;
+  $("ring-bright").value = s.ring_bright || "160";
+  $("bright-n").textContent = $("ring-bright").value;
+  $("ring-effect").value = s.ring_effect || "fill";
+  $("lamp").checked = s.lamp === "1";
+  if (s.lamp_color) $("lamp-color").value = s.lamp_color.startsWith("#") ? s.lamp_color : "#" + s.lamp_color;
+  $("lamp-bright").value = s.lamp_bright || "180";
+  $("lamp-n").textContent = $("lamp-bright").value;
+  $("screen-bright").value = s.screen_bright || "220";
+  $("screen-n").textContent = $("screen-bright").value;
+}
+function body() {
+  const out = {
+    nn: $("nn-kind").value,
+    llm_url: $("llm-url").value.trim(),
+    llm_model: $("llm-model").value.trim(),
+    news: $("news-kind").value,
+    news_url: $("news-url").value.trim(),
+    news_model: $("news-model").value.trim(),
+    stt: $("stt").value,
+    voice: $("voice").value,
+    wake: $("wake").value,
+    persona: $("persona").value,
+    wake_sound: $("wake-sound").checked ? "1" : "0",
+    bt: $("bt").checked ? "1" : "0",
+    ble_gw: $("ble-gw").checked ? "1" : "0",
+    mqtt_host: $("mqtt-host").value.trim(),
+    mqtt_port: $("mqtt-port").value.trim(),
+    mqtt_user: $("mqtt-user").value.trim(),
+    ring: $("ring").checked ? "1" : "0",
+    ring_color: $("ring-color").value,
+    ring_bright: $("ring-bright").value,
+    ring_effect: $("ring-effect").value,
+    lamp: $("lamp").checked ? "1" : "0",
+    lamp_color: $("lamp-color").value,
+    lamp_bright: $("lamp-bright").value,
+    screen_bright: $("screen-bright").value
+  };
+  const mpass = $("mqtt-pass").value;
+  if (mpass) out.mqtt_pass = mpass;
+  const lkey = $("llm-key").value.trim();
+  if (lkey) out.llm_key = lkey;
+  const key = $("news-key").value.trim();
+  if (key) out.news_key = key;
+  return out;
+}
+$("save").onclick = () => api("/api/settings", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body())}).then(() => say("сохранено")).catch((e) => say(e.message));
+function watchSettings() {
+  ["ring","ring-color","ring-bright","ring-effect","lamp","lamp-color","lamp-bright","screen-bright","bt","ble-gw","mqtt-host","mqtt-port","mqtt-user","mqtt-pass","wake","voice","nn-kind","llm-url","llm-model","llm-key","stt","news-kind","news-url","news-model","news-key","persona","wake-sound"].forEach((id) => {
+    $(id).addEventListener("change", () => $("save").click());
+  });
+}
+$("news-kind").addEventListener("change", showNews);
+$("nn-kind").addEventListener("change", showLlm);
+$("ring-bright").oninput = () => { $("bright-n").textContent = $("ring-bright").value; };
+$("lamp-bright").oninput = () => { $("lamp-n").textContent = $("lamp-bright").value; };
+$("screen-bright").oninput = () => { $("screen-n").textContent = $("screen-bright").value; };
+let volumeReady = false;
+$("volume").oninput = () => { $("vol-n").textContent = $("volume").value + "%"; };
+$("volume").onchange = () => {
+  if (!volumeReady) return;
+  api("/api/volume", {method:"POST", body: $("volume").value}).catch((e) => say(e.message));
+};
+$("cmd-send").onclick = () => api("/api/ask", {method:"POST", body: $("cmd-text").value}).then((d) => { $("heard").textContent = d.heard || ""; say(""); }).catch((e) => say(e.message));
+$("say-send").onclick = () => api("/api/speak", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({text: $("say-text").value})}).then(() => say("говорю")).catch((e) => say(e.message));
+
+let alarmEditId = null;
+const DAY_NAMES = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+function parseDays(d) {
+  if (typeof d === "string" && /^[01]{7}$/.test(d)) {
+    const out = [];
+    for (let i = 0; i < 7; i++) if (d[i] === "1") out.push(i);
+    return out;
+  }
+  if (Array.isArray(d)) return d.map(Number).filter((n) => n >= 0 && n <= 6);
+  if (typeof d === "string" && d && d !== "-") {
+    return d.split(",").map((x) => Number(x.trim())).filter((n) => !Number.isNaN(n) && n >= 0 && n <= 6);
+  }
+  return [];
+}
+function repeatText(d) {
+  const days = parseDays(d);
+  if (!days.length) return "один раз";
+  const s = days.slice().sort((a,b) => a - b).join(",");
+  if (s === "0,1,2,3,4,5,6") return "каждый день";
+  if (s === "0,1,2,3,4") return "по будням";
+  if (s === "5,6") return "по выходным";
+  return days.map((x) => DAY_NAMES[x] || "").filter(Boolean).join(", ");
+}
+function selectedDays() {
+  const mode = $("alarm-repeat").value;
+  if (mode === "weekdays") return "1111100";
+  if (mode === "weekends") return "0000011";
+  if (mode === "daily") return "1111111";
+  if (mode === "custom") {
+    const mask = ["0","0","0","0","0","0","0"];
+    document.querySelectorAll("#alarm-days input:checked").forEach((c) => {
+      const idx = Number(c.value);
+      if (idx >= 0 && idx < 7) mask[idx] = "1";
+    });
+    const s = mask.join("");
+    return s.indexOf("1") >= 0 ? s : "-";
+  }
+  return "-";
+}
+function setAlarmForm(a) {
+  alarmEditId = a ? a.id : null;
+  $("alarm-clock").textContent = a ? "Сохранить" : "Поставить";
+  $("alarm-cancel").hidden = !a;
+  if (!a) {
+    $("alarm-label").value = "";
+    $("alarm-repeat").value = "once";
+    $("alarm-days").hidden = true;
+    return;
+  }
+  $("alarm-time").value = a.time || "07:00";
+  $("alarm-label").value = a.label || "";
+  const days = parseDays(a.days);
+  const s = days.slice().sort((x,y) => x - y).join(",");
+  let mode = "custom";
+  if (!days.length) mode = "once";
+  else if (s === "0,1,2,3,4") mode = "weekdays";
+  else if (s === "5,6") mode = "weekends";
+  else if (s === "0,1,2,3,4,5,6") mode = "daily";
+  $("alarm-repeat").value = mode;
+  $("alarm-days").hidden = (mode !== "custom");
+  document.querySelectorAll("#alarm-days input").forEach((c) => {
+    c.checked = days.indexOf(Number(c.value)) >= 0;
+  });
+}
+$("alarm-repeat").addEventListener("change", () => {
+  $("alarm-days").hidden = ($("alarm-repeat").value !== "custom");
+});
+$("alarm-cancel").onclick = () => setAlarmForm(null);
+function paintAlarms(d) {
+  const list = d.alarms || [];
+  $("alarm-stop").hidden = !d.ringing;
+  $("alarm-clear").hidden = !list.length;
+  $("alarms").innerHTML = "";
+  list.forEach((a) => {
+    const row = document.createElement("div");
+    row.className = "alarm-item" + (a.on === false ? " off" : "");
+    const chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.checked = a.on !== false;
+    chk.onchange = () => api("/api/alarms", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({op: chk.checked ? "on" : "off", id: a.id})
+    }).then(paintAlarms).catch((e) => say(e.message));
+    const info = document.createElement("div");
+    info.className = "alarm-info";
+    const t = document.createElement("div");
+    t.className = "alarm-time";
+    t.textContent = (a.time || "") + (a.label ? (" · " + a.label) : "");
+    const sub = document.createElement("div");
+    sub.className = "alarm-sub";
+    sub.textContent = repeatText(a.days);
+    info.append(t, sub);
+    const ed = document.createElement("button");
+    ed.className = "ghost";
+    ed.type = "button";
+    ed.textContent = "Изм.";
+    ed.onclick = () => setAlarmForm(a);
+    const del = document.createElement("button");
+    del.className = "danger";
+    del.type = "button";
+    del.textContent = "×";
+    del.onclick = () => api("/api/alarms", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({op:"del", id: a.id})
+    }).then(paintAlarms).catch((e) => say(e.message));
+    row.append(chk, info, ed, del);
+    $("alarms").append(row);
+  });
+}
+$("alarm-clock").onclick = () => {
+  const payload = {
+    op: alarmEditId ? "edit" : "add",
+    time: $("alarm-time").value,
+    days: selectedDays(),
+    label: $("alarm-label").value.trim()
+  };
+  if (alarmEditId) payload.id = alarmEditId;
+  api("/api/alarms", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  }).then((d) => { paintAlarms(d); setAlarmForm(null); say("будильник сохранён"); }).catch((e) => say(e.message));
+};
+$("alarm-in").onclick = () => api("/api/alarms", {
+  method:"POST", headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({mins: Number($("alarm-mins").value), label: $("alarm-label").value.trim()})
+}).then((d) => { paintAlarms(d); $("alarm-mins").value = ""; say("будильник поставлен"); }).catch((e) => say(e.message));
+$("alarm-stop").onclick = () => api("/api/alarms", {
+  method:"POST", headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({op:"stop"})
+}).then(paintAlarms).catch((e) => say(e.message));
+$("alarm-clear").onclick = () => {
+  if (!window.confirm("Удалить все будильники?")) return;
+  api("/api/alarms", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({op:"clear"})
+  }).then((d) => { paintAlarms(d); setAlarmForm(null); }).catch((e) => say(e.message));
+};
+function paintTone(d) {
+  $("alarm-tone-now").textContent = (d.custom ? "Своя мелодия: " : "") + (d.label || "Встроенный сигнал");
+  if (typeof d.volume === "number") {
+    $("alarm-vol").value = d.volume;
+    $("alarm-vol-n").textContent = d.volume + "%";
+  }
+}
+function loadAlarmTone() {
+  api("/api/alarm-tone").then(paintTone).catch(() => {});
+}
+$("alarm-vol").oninput = () => { $("alarm-vol-n").textContent = $("alarm-vol").value + "%"; };
+$("alarm-vol").onchange = () => api("/api/alarm-tone/volume", {
+  method:"POST", headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({volume: Number($("alarm-vol").value)})
+}).then(paintTone).catch((e) => say(e.message));
+$("alarm-builtin").onclick = () => api("/api/alarm-tone/builtin", {method:"POST"})
+  .then((d) => { paintTone(d); say("встроенный сигнал"); }).catch((e) => say(e.message));
+$("alarm-file").onchange = () => {
+  const f = $("alarm-file").files[0];
+  if (!f) return;
+  say("загружаю мелодию…");
+  fetch("/api/alarm-tone/file?name=" + encodeURIComponent(f.name), {method:"POST", body: f})
+    .then((r) => r.json())
+    .then((d) => { if (d.error) throw new Error(d.error); paintTone(d); say("мелодия сохранена"); })
+    .catch((e) => say(e.message));
+};
+$("alarm-find").onclick = () => {
+  const q = $("alarm-q").value.trim();
+  if (!q) return;
+  const box = $("alarm-tracks");
+  box.innerHTML = "<p class=\"meta\">Ищу…</p>";
+  api("/api/alarm-tone/search?q=" + encodeURIComponent(q)).then((d) => {
+    box.innerHTML = "";
+    const rows = d.tracks || [];
+    if (!rows.length) {
+      box.innerHTML = "<p class=\"meta\">Ничего не найдено</p>";
+      return;
+    }
+    rows.forEach((tr) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      const title = [tr.artist, tr.title].filter(Boolean).join(" — ");
+      b.textContent = title;
+      b.onclick = () => {
+        say("скачиваю трек на колонку…");
+        api("/api/alarm-tone/track", {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({id: String(tr.id), label: title})
+        }).then(() => { loadAlarmTone(); box.innerHTML = ""; say("мелодия установлена: " + title); })
+          .catch((e) => say(e.message));
+      };
+      box.appendChild(b);
+    });
+  }).catch((e) => { box.innerHTML = ""; say(e.message); });
+};
+
+let musicWho = "";
+let playingKind = "";
+let loginWait = null;
+let musicNames = [];
+let voiceNames = [];
+function paintNow(data) {
+  const now = $("music-now");
+  const lyrics = $("lyrics");
+  const state = data.state || "stop";
+  const song = [data.artist, data.title].filter(Boolean).join(" — ");
+  const label = state === "play" ? "Играет" : state === "pause" ? "Пауза" : "Стоп";
+  playingKind = data.kind || "";
+  now.textContent = song ? (label + ": " + song + (data.playlist ? " · " + data.playlist : "")) : "";
+  const text = data.lyrics || (song && data.lyrics_none ? "У этой песни нет текста в Яндекс Музыке." : "");
+  if (lyrics.textContent !== text) lyrics.textContent = text;
+  $("music-play").classList.toggle("on", state === "play");
+  $("music-pause").classList.toggle("on", state === "pause");
+  $("music-stop").classList.toggle("on", state === "stop" && !!song);
+  document.querySelectorAll("#playlists button").forEach((button) => {
+    button.className = button.dataset.kind === playingKind && playingKind ? "on" : "";
+  });
+}
+function loadPeople() {
+  api("/api/people").then((data) => {
+    const box = $("people");
+    musicWho = data.who || "";
+    musicNames = (data.people || []).map((p) => String(p.name || "").toLowerCase());
+    try { paintNewPeople(); } catch (e) { say(e.message); }
+    box.innerHTML = "";
+    if (!(data.people || []).length) {
+      $("music-state").textContent = "Людей пока нет. Напишите имя и нажмите «Войти».";
+    }
+    (data.people || []).forEach((person) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = person.login ? (person.name + " · " + person.login) : person.name;
+      if (person.id === musicWho) button.className = "on";
+      button.addEventListener("click", () => {
+        api("/api/music/who", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({id: person.id})
+        }).then(() => loadPeople()).catch((e) => say(e.message));
+      });
+      box.appendChild(button);
+    });
+    if (musicWho) loadPlaylists(musicWho);
+  }).catch((e) => {
+    $("music-state").textContent = "Список людей не пришёл: " + e.message;
+  });
+}
+function loadPlaylists(id) {
+  api("/api/playlists?id=" + encodeURIComponent(id)).then((data) => {
+    const box = $("playlists");
+    const rows = data.playlists || [];
+    box.innerHTML = "";
+    if (!rows.length) {
+      $("music-state").textContent = "Плейлисты не пришли, пробую ещё раз…";
+      return;
+    }
+    $("music-state").textContent = "Плейлисты: " + rows.length;
+    rows.forEach((row) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.kind = String(row.kind);
+      button.textContent = row.tracks ? (row.title + " · " + row.tracks) : row.title;
+      if (String(row.kind) === playingKind) button.className = "on";
+      button.addEventListener("click", () => {
+        api("/api/music/play", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({id: id, kind: String(row.kind)})
+        }).then(() => {
+          $("music-state").textContent = "Включаю: " + row.title;
+        }).catch((e) => say(e.message));
+      });
+      box.appendChild(button);
+    });
+  }).catch(() => {
+    $("music-state").textContent = "Музыка этого человека ещё не открывается.";
+  });
+}
+function musicCtrl(cmd) {
+  api("/api/music/ctrl", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({cmd: cmd})
+  }).then(() => api("/api/music/now").then(paintNow)).catch((e) => say(e.message));
+}
+function musicMark(cmd) {
+  api("/api/music/mark", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({cmd: cmd})
+  }).then((data) => {
+    if (data.ok) say(cmd === "like" ? "Лайк" : "Дизлайк");
+    else say("Сейчас ничего не играет");
+  }).catch((e) => say(e.message));
+}
+$("music-play").onclick = () => musicCtrl("play");
+$("music-pause").onclick = () => musicCtrl("pause");
+$("music-stop").onclick = () => musicCtrl("stop");
+$("music-prev").onclick = () => musicCtrl("prev");
+$("music-next").onclick = () => musicCtrl("next");
+$("music-like").onclick = () => musicMark("like");
+$("music-dislike").onclick = () => musicMark("dislike");
+function startLogin(name) {
+  if (!name) { say("Напишите имя"); return; }
+  api("/api/music/login", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({name: name})
+  }).then((data) => {
+    $("music-code").textContent = "На телефоне откройте " + data.verification_url + " и введите код " + data.user_code;
+    if (loginWait) clearInterval(loginWait);
+    loginWait = setInterval(() => {
+      api("/api/music/poll?id=" + encodeURIComponent(data.id)).then((state) => {
+        if (state.error) {
+          clearInterval(loginWait);
+          say(state.error);
+          return;
+        }
+        if (state.ready === true || state.ready === "yes") {
+          clearInterval(loginWait);
+          $("music-code").textContent = "Вошли как " + (state.login || name);
+          $("person-name").value = "";
+          loadPeople();
+        }
+      }).catch(() => {});
+    }, 2000);
+  }).catch((e) => say(e.message));
+}
+$("person-add").onclick = () => startLogin($("person-name").value.trim());
+function paintNewPeople() {
+  const box = $("people-new");
+  box.innerHTML = "";
+  voiceNames.filter((name) => musicNames.indexOf(name.toLowerCase()) < 0).forEach((name) => {
+    const row = document.createElement("div");
+    const label = document.createElement("span");
+    const button = document.createElement("button");
+    row.className = "row";
+    label.className = "grow";
+    label.textContent = name + " · голос знаком, музыки нет";
+    button.className = "ghost";
+    button.type = "button";
+    button.textContent = "Войти";
+    button.onclick = () => startLogin(name);
+    row.append(label, button);
+    box.appendChild(row);
+  });
+}
+function voicesPost(body) {
+  return api("/api/voices", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(body)
+  }).then((data) => {
+    if (data.error) throw new Error(data.error);
+    paintVoices(data);
+  });
+}
+function paintVoices(data) {
+  const box = $("voices");
+  const list = data.voices || [];
+  const persons = data.persons || [];
+  box.innerHTML = "";
+  voiceNames = list.map((v) => v.name);
+  list.forEach((voice) => {
+    const row = document.createElement("div");
+    const label = document.createElement("span");
+    row.className = "row";
+    label.className = "grow";
+    label.textContent = voice.name + " · " + voice.phrases + " фраз";
+    row.appendChild(label);
+    if (data.ha) {
+      const sel = document.createElement("select");
+      sel.setAttribute("aria-label", "Человек в HA");
+      const none = document.createElement("option");
+      none.value = "";
+      none.textContent = "не привязан к HA";
+      sel.appendChild(none);
+      persons.forEach((p) => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name;
+        sel.appendChild(opt);
+      });
+      sel.value = voice.ha || "";
+      sel.addEventListener("change", () => {
+        voicesPost({op: "bind", name: voice.name, ha: sel.value}).then(() => say("Привязано")).catch((e) => say(e.message));
+      });
+      row.appendChild(sel);
+    }
+    const forget = document.createElement("button");
+    forget.className = "danger";
+    forget.type = "button";
+    forget.textContent = "Забыть";
+    forget.onclick = () => {
+      if (!window.confirm("Забыть голос «" + voice.name + "»?")) return;
+      voicesPost({op: "forget", name: voice.name}).catch((e) => say(e.message));
+    };
+    row.appendChild(forget);
+    box.appendChild(row);
+  });
+  $("voices-state").textContent = list.length
+    ? "Колонка узнаёт по голосу."
+    : "Пока никого. Скажите «Джарвис, запомни мой голос» или нажмите «Познакомиться».";
+  paintNewPeople();
+}
+function loadVoices() {
+  api("/api/voices").then(paintVoices).catch(() => {
+    $("voices-state").textContent = "Сервер голосов не отвечает.";
+  });
+}
+$("voice-enroll").onclick = () => {
+  voicesPost({op: "enroll"}).then(() => say("Колонка спросит имя, отвечайте ей")).catch((e) => say(e.message));
+};
+
+let wifiNow = "";
+let wifiPick = "";
+let wifiNets = [];
+function drawNets(nets) {
+  const box = $("nets");
+  box.innerHTML = "";
+  if (!nets.length) {
+    const empty = document.createElement("p");
+    empty.className = "meta";
+    empty.textContent = "Сети не видны";
+    box.appendChild(empty);
+    return;
+  }
+  nets.forEach((net) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = net.ssid === wifiPick ? "on" : "";
+    const here = net.ssid === wifiNow ? " · сейчас" : "";
+    const band = net.band === 5 ? "5 ГГц" : "2.4";
+    btn.textContent = net.ssid + here + " · " + band + " · " + net.dbm + " дБм";
+    btn.addEventListener("click", () => {
+      wifiPick = net.ssid;
+      drawNets(nets);
+    });
+    box.appendChild(btn);
+  });
+}
+function scanWifi() {
+  api("/api/wifi").then((data) => {
+    wifiNow = data.now || "";
+    wifiNets = data.nets || [];
+    if (!wifiPick) wifiPick = wifiNow;
+    drawNets(wifiNets);
+  }).catch((e) => say(e.message));
+}
+$("rescan").onclick = scanWifi;
+$("wifi").onclick = () => {
+  if (!wifiPick) {
+    say("Сначала выберите сеть");
+    return;
+  }
+  say("Подключаю " + wifiPick);
+  api("/api/wifi", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ssid: wifiPick, password: $("wpsk").value})
+  }).then(() => { say("В сети " + wifiPick); scanWifi(); }).catch((e) => say(e.message));
+};
+function openTv(which) {
+  api("/api/open", {method: "POST", body: which}).then(() => {
+    $("tv-state").textContent = which === "vlc" ? "Открываю VLC на телевизоре." : "Открываю браузер на телевизоре.";
+  }).catch((e) => { $("tv-state").textContent = e.message; });
+}
+$("open-browser").onclick = () => openTv("browser");
+$("open-vlc").onclick = () => openTv("vlc");
+scanWifi();
+
+api("/api/settings").then((s) => { fill(s); watchSettings(); }).catch((e) => say(e.message));
+api("/api/volume").then((d) => {
+  $("volume").value = d.volume;
+  $("vol-n").textContent = d.volume + "%";
+  volumeReady = true;
+}).catch(() => {});
+api("/api/alarms").then(paintAlarms).catch(() => {});
+loadAlarmTone();
+loadPeople();
+loadVoices();
+function tickBle() {
+  api("/api/ble").then((d) => {
+    $("ble-count").textContent = String(d.total || 0);
+    $("ble-state").textContent = (d.scan_note || "") + " · " + (d.mqtt_note || "");
+    const list = (d.devices || []).slice(0, 12).map((x) => {
+      const vals = [];
+      if (x.temp !== undefined) vals.push(x.temp + "°C");
+      if (x.hum !== undefined) vals.push(x.hum + "%");
+      if (x.bat !== undefined) vals.push("🔋" + x.bat + "%");
+      if (x.lux !== undefined) vals.push(x.lux + " лк");
+      const title = x.name ? (x.name + " (" + x.mac.slice(-8) + ")") : x.mac;
+      return title + " · " + x.rssi + " дБм" + (vals.length ? (" · " + vals.join(" ")) : "");
+    });
+    $("ble-list").textContent = list.length ? list.join("\n") : "Пока устройств не видно…";
+    $("ble-list").style.whiteSpace = "pre-line";
+  }).catch(() => {});
+}
+tickBle();
+setInterval(tickBle, 8000);
+function tickStatus() {
+  api("/api/status").then((st) => {
+    const parts = [];
+    if (st.localJarvis) parts.push("Локальный Джарвис: " + st.localJarvis);
+    if (st.bt) parts.push("BT: " + st.bt);
+    if (st.chip_c > -90) parts.push("SoC: " + st.chip_c.toFixed(1) + "°C");
+    if (st.lux >= 0) parts.push("Свет: " + st.lux.toFixed(1) + " лк");
+    $("board").textContent = parts.join(" · ");
+    $("alarm-stop").hidden = !st.alarmRinging;
+  }).catch(() => {});
+}
+tickStatus();
+setInterval(tickStatus, 3000);
+function tickClock() {
+  fetch("/api/clock").then((r) => r.json()).then((d) => { if (d.text) $("clock").textContent = d.text; }).catch(() => {});
+}
+tickClock();
+setInterval(tickClock, 1000);
+setInterval(() => fetch("/api/heard").then((r) => r.json()).then((d) => { if (d.text) $("heard").textContent = d.text; }).catch(() => {}), 1000);
+setInterval(() => api("/api/alarms").then(paintAlarms).catch(() => {}), 5000);
+setInterval(() => api("/api/music/now").then(paintNow).catch(() => {}), 2000);
+setInterval(() => { if (!document.querySelector("#playlists button")) loadPeople(); }, 20000);
+setInterval(loadVoices, 15000);
+</script>
+</body>
+</html>

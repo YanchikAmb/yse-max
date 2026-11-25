@@ -1,0 +1,6 @@
+out/
+*.apk
+*.idsig
+.req
+.env
+*.env
